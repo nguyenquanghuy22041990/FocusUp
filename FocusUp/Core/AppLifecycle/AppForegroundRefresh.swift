@@ -19,6 +19,7 @@ enum AppForegroundRefresh {
     await dismissLiveActivitiesWhenNoActiveSession(using: container)
   }
 
+  @MainActor
   static func dismissLiveActivitiesWhenNoActiveSession(using container: AppContainer) async {
     let hasFocus = container.focusSessionManager.activeSession?.status.isActiveLifecycle == true
     let hasRest = container.restSessionManager.activeSession?.status.isActiveLifecycle == true
