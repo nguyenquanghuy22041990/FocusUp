@@ -1,0 +1,82 @@
+name: iOS CI
+
+on:
+  push:
+    branches:
+      - develop
+      - main
+      - "feature/**"
+  pull_request:
+    branches:
+      - develop
+      - main
+
+concurrency:
+  group: ios-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Build, test, and logic coverage
+    runs-on: macos-15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+
+      - name: Show Xcode version
+        run: xcodebuild -version
+
+      - name: Resolve Swift packages
+        run: xcodebuild -resolvePackageDependencies -project FocusUp.xcodeproj -scheme FocusUp
+
+      - name: Pick iOS Simulator
+        id: simulator
+        run: |
+          DESTINATION=$(python3 <<'PY'
+          import json, subprocess, sys
+          out = subprocess.check_output(["xcrun", "simctl", "list", "devices", "available", "-j"], text=True)
+          devices = json.loads(out)["devices"]
+          preferred = ("iPhone 17", "iPhone 16", "iPhone 15", "iPhone SE")
+          for runtime in sorted(devices.keys(), reverse=True):
+              if "iOS" not in runtime:
+                  continue
+              by_name = {d["name"]: d for d in devices[runtime] if d.get("isAvailable")}
+              for name in preferred:
+                  if name in by_name:
+                      print(f"platform=iOS Simulator,id={by_name[name]['udid']}")
+                      sys.exit(0)
+              for d in devices[runtime]:
+                  if d.get("isAvailable") and d.get("name", "").startswith("iPhone"):
+                      print(f"platform=iOS Simulator,id={d['udid']}")
+                      sys.exit(0)
+          sys.exit("No available iPhone simulator found")
+          PY
+          )
+          echo "destination=$DESTINATION" >> "$GITHUB_OUTPUT"
+          echo "Using $DESTINATION"
+
+      - name: Unit tests with coverage
+        run: |
+          rm -rf TestResults.xcresult
+          xcodebuild test \
+            -project FocusUp.xcodeproj \
+            -scheme FocusUp \
+            -destination "${{ steps.simulator.outputs.destination }}" \
+            -enableCodeCoverage YES \
+            -resultBundlePath TestResults.xcresult \
+            -only-testing:FocusUpTests
+
+      - name: Logic coverage gate
+        run: python3 scripts/logic_coverage.py TestResults.xcresult scripts/coverage_policy.json
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-test-results
+          path: TestResults.xcresult
+          if-no-files-found: ignore

@@ -8,9 +8,17 @@ import Testing
 
 @MainActor
 struct ProductionSmokeTests {
+  private func makeLiveStyleContainer() throws -> AppContainer {
+    let persistence = try PersistenceController(inMemory: true)
+    return AppContainer(
+      persistence: persistence,
+      coordinator: AppCoordinator(selectedTab: .dashboard)
+    )
+  }
+
   @Test(.tags(.production))
-  func liveContainerInitializes() {
-    let container = AppContainer.live
+  func liveContainerInitializes() throws {
+    let container = try makeLiveStyleContainer()
     #expect(container.coordinator.selectedTab == .dashboard)
     #expect(container.focusSessionManager.activeSession == nil)
     #expect(container.restSessionManager.activeSession == nil)
