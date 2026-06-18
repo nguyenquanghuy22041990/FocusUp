@@ -99,7 +99,7 @@ def main(argv: list[str]) -> int:
     total_pct, total_cov, total_lines = summarize(files, lambda _: True)
     logic_pct, logic_cov, logic_lines = summarize(files, lambda p: is_logic_file(p, policy))
 
-    minimum_logic = float(policy.get("minimum_logic_coverage", 70.0))
+    minimum_logic = float(policy.get("minimum_logic_coverage", 80.0))
     minimum_total = float(policy.get("minimum_total_coverage", 0.0))
 
     print("FocusUp coverage summary")

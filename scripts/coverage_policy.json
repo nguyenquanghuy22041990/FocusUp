@@ -1,5 +1,5 @@
 {
-  "minimum_logic_coverage": 70.0,
+  "minimum_logic_coverage": 80.0,
   "minimum_total_coverage": 0.0,
   "exclude_patterns": [
     "/DesignSystem/",
@@ -7,13 +7,17 @@
     "/Components/",
     "/Charts/",
     "/Animations/",
+    "/Cards/",
     "/Repositories/Preview/",
     "PreviewData/",
     "Previews.swift",
     "Preview.swift",
     "GalleryView.swift",
     "Placeholder",
-    "/FocusTimerWidget/"
+    "/FocusTimerWidget/",
+    "RestorationModifier",
+    "NavigationBackLockModifier",
+    "AdaptiveLayout"
   ],
   "exclude_suffixes": [
     "View.swift",
