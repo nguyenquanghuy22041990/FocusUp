@@ -1,0 +1,15 @@
+# Cuckoo mock generation for FocusUpTests.
+# @MainActor repository protocols are mocked manually (Cuckoo crashes on @MainActor in Xcode 16+).
+# Clock is Sendable and safe for generated mocks.
+
+output = "FocusUpTests/Generated/GeneratedMocks.swift"
+
+[modules.FocusUpTests]
+imports = ["Foundation"]
+testableImports = ["FocusUp"]
+sources = [
+    "FocusUp/Core/Timer/Clock.swift",
+]
+
+[modules.FocusUpTests.options]
+protocolsOnly = true

@@ -1,0 +1,33 @@
+{
+  "minimum_logic_coverage": 80.0,
+  "minimum_total_coverage": 0.0,
+  "exclude_patterns": [
+    "/DesignSystem/",
+    "/Testing/",
+    "/Components/",
+    "/Charts/",
+    "/Animations/",
+    "/Cards/",
+    "/Repositories/Preview/",
+    "PreviewData/",
+    "Previews.swift",
+    "Preview.swift",
+    "GalleryView.swift",
+    "Placeholder",
+    "/FocusTimerWidget/",
+    "RestorationModifier",
+    "NavigationBackLockModifier",
+    "AdaptiveLayout"
+  ],
+  "exclude_suffixes": [
+    "View.swift",
+    "HostView.swift"
+  ],
+  "include_prefixes": [
+    "FocusUp/Domain/",
+    "FocusUp/Core/",
+    "FocusUp/Data/",
+    "FocusUp/Features/",
+    "FocusUp/App/"
+  ]
+}
