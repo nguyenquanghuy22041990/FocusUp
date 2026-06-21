@@ -2,6 +2,8 @@
 
 **Deep dives:** [`design-patterns/README.md`](design-patterns/README.md) — one file per pattern with diagrams and interview answers.
 
+**Mermaid diagrams:** Use `flowchart` (one word, not `flow chart`). Avoid `@`, `>=`, and unquoted `/` or `+` in labels — quote node text with `["..."]` when needed. See fixes applied across this guide for GitHub/Cursor compatibility.
+
 ## MVVM
 
 **Concept:** Separate UI (View) from presentation logic (ViewModel) and data (Model).
@@ -202,15 +204,15 @@
 
 ```mermaid
 flowchart TB
-    subgraph patterns [Patterns in FocusUp]
+    subgraph patterns ["Patterns in FocusUp"]
         MVVM[MVVM]
         COORD[Coordinator]
         REPO[Repository]
-        STRAT[Strategy - Clock/Audio]
-        FACADE[Facade - Orchestrator]
-        STATE[State - TimerEngine]
-        ADAPTER[Mapper/Adapter]
-        NULL[Null Object - NoOp services]
+        STRAT["Strategy Clock and Audio"]
+        FACADE["Facade Orchestrator"]
+        STATE["State TimerEngine"]
+        ADAPTER["Mapper and Adapter"]
+        NULL["Null Object NoOp services"]
     end
 ```
 

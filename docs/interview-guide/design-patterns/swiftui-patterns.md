@@ -21,10 +21,10 @@ Patterns that emerge from **SwiftUI's composition model** rather than classic Ga
 
 ```mermaid
 flowchart TB
-    App[App.swift] --> Root[AppRootView]
+    AppNode["App.swift"] --> Root[AppRootView]
     Root --> Tab[RootTabView]
     Tab --> Feature[Feature views]
-    App -.->|environment| Feature
+    AppNode -.->|environment| Feature
 ```
 
 **Interview line:** "Composition root sets `\.appContainer`; features read managers and repos from environment."
@@ -145,12 +145,12 @@ See [../16-app-restoration-coordinator.md](../16-app-restoration-coordinator.md)
 
 ```mermaid
 flowchart TB
-    CR[Composition root App + AppRootView]
+    CR["Composition root App and AppRootView"]
     CR --> Env[Environment injection]
     CR --> Lift[Lifted coordinator state]
     CR --> Mod[Side-effect modifiers]
     CR --> Obs[Observable ViewModels]
-    CR --> Task[task / onChange async]
+    CR --> AsyncWork["task and onChange async"]
     Env --> Views[Feature Views]
 ```
 

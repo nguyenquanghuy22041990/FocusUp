@@ -6,12 +6,6 @@
 import Foundation
 import Observation
 
-enum FocusSessionManagerError: Error, Equatable {
-  case sessionAlreadyActive
-  case noActiveSession
-  case sessionNotFound
-}
-
 @MainActor
 @Observable
 final class FocusSessionManager {
@@ -20,11 +14,14 @@ final class FocusSessionManager {
   private let ambientSoundPlayer: any SessionAmbientSoundPlaying
   private let liveActivityManager: any LiveActivityManaging
   private let notificationScheduler: (any NotificationScheduling)?
+  private let lifecycle: SessionLifecycleRunner<FocusSession>
 
-  let timerEngine: TimerEngine
-
-  private(set) var activeSession: FocusSession?
-  var lastError: String?
+  var activeSession: FocusSession? { lifecycle.activeSession }
+  var timerEngine: TimerEngine { lifecycle.timerEngine }
+  var lastError: String? {
+    get { lifecycle.lastError }
+    set { lifecycle.lastError = newValue }
+  }
 
   init(
     repository: any FocusRepository,
@@ -38,26 +35,65 @@ final class FocusSessionManager {
     self.ambientSoundPlayer = ambientSoundPlayer
     self.liveActivityManager = liveActivityManager ?? Self.defaultLiveActivityManager()
     self.notificationScheduler = notificationScheduler
-    self.timerEngine = TimerEngine(clock: clock)
-  }
 
-  // MARK: - Lifecycle
+    let ambientSoundPlayer = ambientSoundPlayer
+    let liveActivityManager = self.liveActivityManager
+    let notificationScheduler = notificationScheduler
+
+    lifecycle = SessionLifecycleRunner(
+      clock: clock,
+      store: SessionLifecycleStore(
+        fetchActive: { try await repository.fetchActive() },
+        fetch: { try await repository.fetch(id: $0) },
+        save: { try await repository.save($0) }
+      ),
+      sideEffects: SessionLifecycleSideEffects(
+        onAfterStart: { session, now in
+          ambientSoundPlayer.play(category: .focus)
+          await liveActivityManager.startFocus(session: session, now: now)
+        },
+        onAfterPause: { session, now in
+          ambientSoundPlayer.stop()
+          await liveActivityManager.syncFocus(session: session, now: now)
+        },
+        onAfterResume: { session, now in
+          await liveActivityManager.syncFocus(session: session, now: now)
+        },
+        onAfterComplete: { session, _ in
+          ambientSoundPlayer.stop()
+          await liveActivityManager.end(immediate: true)
+          await notificationScheduler?.notifySessionCompleted(
+            title: session.title,
+            sessionID: session.id
+          )
+        },
+        onAfterCancel: { _, _ in
+          ambientSoundPlayer.stop()
+          await liveActivityManager.end(immediate: true)
+        },
+        onAfterRestore: { session, now in
+          await liveActivityManager.startFocus(session: session, now: now)
+        },
+        onAfterRestoreSync: { session, now in
+          await liveActivityManager.syncFocus(session: session, now: now)
+        },
+        playAmbientSound: {
+          ambientSoundPlayer.play(category: .focus)
+        },
+        stopAmbientSound: {
+          ambientSoundPlayer.stop()
+        }
+      )
+    )
+  }
 
   func startSession(
     title: String,
     durationSeconds: Int = TimerConfiguration.defaultFocus.totalDurationSeconds,
     associatedTaskID: UUID? = nil
   ) async throws {
-    if activeSession != nil {
-      throw FocusSessionManagerError.sessionAlreadyActive
-    }
-
     let now = clock.now()
-    let config = TimerConfiguration(totalDurationSeconds: durationSeconds)
-    timerEngine.reset(configuration: config)
-    timerEngine.start(at: now)
-
-    var session = FocusSession(
+    let session = FocusSession(
       title: title,
       plannedDurationSeconds: durationSeconds,
       status: .active,
@@ -65,150 +101,49 @@ final class FocusSessionManager {
       sessionStartedAt: now,
       associatedTaskID: associatedTaskID
     )
-    session.applyTimerSnapshotForPersistence(timerEngine.exportSnapshot(at: now), at: now)
-
-    try await repository.save(session)
-    activeSession = session
-    lastError = nil
-    ambientSoundPlayer.play(category: .focus)
-    await liveActivityManager.startFocus(session: session, now: now)
+    try await lifecycle.activateNewSession(session, durationSeconds: durationSeconds)
   }
 
   func pauseSession() async throws {
-    guard var session = activeSession else { throw FocusSessionManagerError.noActiveSession }
-    let now = clock.now()
-    timerEngine.pause(at: now)
-    session.applyTimerSnapshotForPersistence(timerEngine.exportSnapshot(at: now), at: now)
-    try await persist(session)
-    ambientSoundPlayer.stop()
-    if let activeSession { await liveActivityManager.syncFocus(session: activeSession, now: now) }
+    try await lifecycle.pauseSession()
   }
 
   func resumeSession() async throws {
-    guard var session = activeSession else { throw FocusSessionManagerError.noActiveSession }
-    let now = clock.now()
-    timerEngine.resume(at: now)
-    session.applyTimerSnapshotForPersistence(timerEngine.exportSnapshot(at: now), at: now)
-    try await persist(session)
-    ambientSoundPlayer.play(category: .focus)
-    if let activeSession { await liveActivityManager.syncFocus(session: activeSession, now: now) }
+    try await lifecycle.resumeSession()
   }
 
   func completeSession() async throws {
-    guard var session = activeSession else { throw FocusSessionManagerError.noActiveSession }
-    let now = clock.now()
-    timerEngine.complete(at: now)
-    session.applyTimerSnapshotForPersistence(timerEngine.exportSnapshot(at: now), at: now)
-    session.completedAt = now
-    try await persist(session)
-    activeSession = nil
-    timerEngine.reset()
-    ambientSoundPlayer.stop()
-    await liveActivityManager.end(immediate: true)
-    await notificationScheduler?.notifySessionCompleted(
-      title: session.title,
-      sessionID: session.id
-    )
+    try await lifecycle.completeSession()
   }
 
   func cancelSession() async throws {
-    guard var session = activeSession else { throw FocusSessionManagerError.noActiveSession }
-    let now = clock.now()
-    timerEngine.cancel(at: now)
-    session.applyTimerSnapshotForPersistence(timerEngine.exportSnapshot(at: now), at: now)
-    try await persist(session)
-    activeSession = nil
-    timerEngine.reset()
-    ambientSoundPlayer.stop()
-    await liveActivityManager.end(immediate: true)
+    try await lifecycle.cancelSession()
   }
 
   func tick() async -> TimerSnapshot {
-    let priorState = timerEngine.state
-    let snapshot = timerEngine.tick(at: clock.now())
-    if priorState != .completed, snapshot.state == .completed {
-      try? await completeSession()
-    }
-    return snapshot
+    await lifecycle.tick()
   }
-
-  // MARK: - Restoration
 
   func restoreOnLaunch() async {
-    guard activeSession == nil else { return }
-    guard let session = try? await repository.fetchActive() else { return }
-    applyRestoredSession(session)
-    if let activeSession {
-      await liveActivityManager.startFocus(session: activeSession, now: clock.now())
-    }
+    await lifecycle.restoreOnLaunch()
   }
 
-  func applyRestorationSnapshot(_ snapshot: FocusTimerRestorationSnapshot) async {
-    let reconciled = TimerRestorationManager.reconcile(snapshot, at: clock.now())
-    guard let session = try? await repository.fetch(id: reconciled.sessionID) else { return }
-    guard session.status.isActiveLifecycle else { return }
-
-    if reconciled.timerSnapshot.state == .completed || reconciled.timerSnapshot.state == .cancelled {
-      var finalized = session
-      finalized.applyTimerSnapshotForPersistence(reconciled.timerSnapshot, at: clock.now())
-      if reconciled.timerSnapshot.state == .completed {
-        finalized.completedAt = clock.now()
-      }
-      try? await repository.save(finalized)
-      return
-    }
-
-    activeSession = session
-    timerEngine.restore(from: reconciled.timerSnapshot)
-    timerEngine.reconcileAfterRestore(at: clock.now())
-    if var updated = activeSession {
-      updated.applyTimerSnapshotForPersistence(timerEngine.exportSnapshot(at: clock.now()), at: clock.now())
-      activeSession = updated
-      try? await repository.save(updated)
-    }
-    syncAmbientSoundWithActiveSession()
-    if let activeSession {
-      await liveActivityManager.syncFocus(session: activeSession, now: clock.now())
-    }
+  func applyRestorationSnapshot(_ snapshot: SessionTimerRestorationSnapshot) async {
+    await lifecycle.applyRestorationSnapshot(snapshot)
   }
 
   #if DEBUG
-  /// Configures in-memory state for SwiftUI previews. Not for production use.
   func configureForPreview(session: FocusSession, timerSnapshot: TimerSnapshot) {
-    activeSession = session
-    timerEngine.restore(from: timerSnapshot)
+    lifecycle.configureForPreview(session: session, timerSnapshot: timerSnapshot)
   }
   #endif
 
-  func exportRestorationSnapshot() -> FocusTimerRestorationSnapshot? {
-    guard let session = activeSession else { return nil }
-    return FocusTimerRestorationSnapshot(
-      sessionID: session.id,
-      timerSnapshot: timerEngine.exportSnapshot(at: clock.now())
-    )
+  func exportRestorationSnapshot() -> SessionTimerRestorationSnapshot? {
+    lifecycle.exportRestorationSnapshot()
   }
 
-  // MARK: - Private
-
-  private func persist(_ session: FocusSession) async throws {
-    try await repository.save(session)
-    activeSession = session
-    lastError = nil
-  }
-
-  private func applyRestoredSession(_ session: FocusSession) {
-    activeSession = session
-    rebuildTimer(from: session)
-    timerEngine.reconcileAfterRestore(at: clock.now())
-    syncAmbientSoundWithActiveSession()
-  }
-
-  private func syncAmbientSoundWithActiveSession() {
-    guard activeSession?.status == .active else {
-      ambientSoundPlayer.stop()
-      return
-    }
-    ambientSoundPlayer.play(category: .focus)
+  func syncAmbientSoundWithActiveSession() {
+    lifecycle.syncAmbientSoundWithActiveSession()
   }
 
   private static func defaultLiveActivityManager() -> any LiveActivityManaging {
@@ -217,19 +152,5 @@ final class FocusSessionManager {
     #else
     NoOpLiveActivityManager()
     #endif
-  }
-
-  private func rebuildTimer(from session: FocusSession) {
-    let config = TimerConfiguration(totalDurationSeconds: session.plannedDurationSeconds)
-    timerEngine.reset(configuration: config)
-
-    let snapshot = TimerSnapshot(
-      state: session.status.timerState,
-      configuration: config,
-      accumulatedElapsedSeconds: session.elapsedSeconds,
-      segmentStartedAt: session.segmentStartedAt,
-      lastUpdatedAt: clock.now()
-    )
-    timerEngine.restore(from: snapshot)
   }
 }

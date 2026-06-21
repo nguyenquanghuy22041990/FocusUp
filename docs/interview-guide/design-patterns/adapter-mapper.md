@@ -74,10 +74,10 @@ flowchart LR
     Repo --> Read[FetchDescriptor]
     Read --> Entity[TaskEntity]
     Entity --> MapD[toDomain]
-    MapD --> Task[Task]
-    Task --> VM[TaskListViewModel]
+    MapD --> DomainTask["Task model"]
+    DomainTask --> VM[TaskListViewModel]
 
-    VM --> Save[save Task]
+    VM --> Save["save task"]
     Save --> MapE[toEntity]
     MapE --> Entity
     Entity --> Ctx[ModelContext.save]

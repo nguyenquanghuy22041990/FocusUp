@@ -26,7 +26,7 @@ Decorators compose behavior on the **composition root** or feature root.
 flowchart TB
     Root[AppRootView]
     Root --> Nav[NavigationRestorationModifier]
-    Root --> Focus[FocusTimerRestorationModifier]
+    Root --> FocusMod[FocusTimerRestorationModifier]
     Root --> Rest[RestTimerRestorationModifier]
     Root --> Motion[focusMotionContext]
     Feature[Feature views] --> Calm[CalmBreathingModifier]

@@ -50,7 +50,7 @@ stateDiagram-v2
     idle --> running: start
     running --> paused: pause
     paused --> running: resume
-    running --> completed: complete / auto-complete
+    running --> completed: complete or auto-complete
     running --> cancelled: cancel
     paused --> cancelled: cancel
     completed --> [*]

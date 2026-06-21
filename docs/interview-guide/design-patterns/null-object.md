@@ -36,8 +36,8 @@ ambientSoundPlayer.play(category: .rain)  // NoOp silently ignores
 flowchart LR
     Proto[Protocol] --> Real[Real implementation]
     Proto --> NoOp[NoOp implementation]
-    Real --> Prod[Production / device]
-    NoOp --> Prev[Previews / tests / unsupported platform]
+    Real --> Prod["Production on device"]
+    NoOp --> Prev["Previews tests unsupported platform"]
 ```
 
 | Protocol | NoOp type | File |

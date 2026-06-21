@@ -46,7 +46,7 @@ flowchart TB
     Strat --> Null[Null Object]
     MVVM[MVVM] --> Coord[Coordinator]
     MVVM --> Facade[Facade]
-    Repo --> Adapter[Adapter / Mapper]
+    Repo --> Adapter["Adapter and Mapper"]
     Facade --> Builder[Builder]
     Decorator[Decorator] --> SwiftUI[SwiftUI patterns]
     DI --> SwiftUI

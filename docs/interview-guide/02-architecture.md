@@ -69,7 +69,7 @@ sequenceDiagram
     O->>A: buildSnapshot()
     A-->>O: DashboardSnapshot
     O-->>VM: snapshot
-    VM-->>V: @Observable update
+    VM-->>V: Observable update
 ```
 
 **Write path (focus complete):**

@@ -49,7 +49,7 @@ enum DashboardStateAggregator {
 ```mermaid
 flowchart LR
     Stats[StatisticsSummary] --> B[buildSnapshot]
-    Tasks[Task array] --> B
+    TaskList["Task array"] --> B
     Focus[FocusSession optional] --> B
     Rest[activeRest flag] --> B
     B --> Snap[DashboardSnapshot]
