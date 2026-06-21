@@ -30,13 +30,15 @@ final class HapticFeedbackCoordinator {
   func lightImpact() {
     guard isEnabled else { return }
     #if canImport(UIKit)
-    lightImpactGenerator.impactOccurred(intensity: 0.55)
+    lightImpactGenerator.prepare()
+    lightImpactGenerator.impactOccurred(intensity: 0.65)
     #endif
   }
 
   func selectionChanged() {
     guard isEnabled else { return }
     #if canImport(UIKit)
+    selectionGenerator.prepare()
     selectionGenerator.selectionChanged()
     #endif
   }
@@ -44,6 +46,7 @@ final class HapticFeedbackCoordinator {
   func success() {
     guard isEnabled else { return }
     #if canImport(UIKit)
+    notificationGenerator.prepare()
     notificationGenerator.notificationOccurred(.success)
     #endif
   }
@@ -51,6 +54,7 @@ final class HapticFeedbackCoordinator {
   func warning() {
     guard isEnabled else { return }
     #if canImport(UIKit)
+    notificationGenerator.prepare()
     notificationGenerator.notificationOccurred(.warning)
     #endif
   }

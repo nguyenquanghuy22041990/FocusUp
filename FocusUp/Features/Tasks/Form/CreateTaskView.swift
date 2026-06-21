@@ -6,9 +6,9 @@
 import SwiftUI
 
 struct CreateTaskView: View {
+  @Environment(\.appContainer) private var container
   @Environment(\.horizontalSizeClass) private var horizontalSizeClass
   @Environment(\.dismiss) private var dismiss
-  @Environment(\.hapticFeedback) private var hapticFeedback
   @Bindable var viewModel: CreateTaskViewModel
   var onCreated: () -> Void
 
@@ -60,10 +60,10 @@ struct CreateTaskView: View {
         isLoading: viewModel.isSubmitting,
         isDisabled: viewModel.isSubmitting
       ) {
-        _Concurrency.Task {
+        _Concurrency.Task { @MainActor in
           let created = await viewModel.createTask()
           if created {
-            hapticFeedback.success()
+            container.hapticFeedback.success()
             viewModel.resetAfterSuccess()
             onCreated()
             dismiss()
