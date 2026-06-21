@@ -34,14 +34,14 @@ Each static builds a complete `AppContainer` with the right persistence, repos, 
 
 ```mermaid
 flowchart TB
-    subgraph factories [AppContainer factories]
+    subgraph factories ["AppContainer factories"]
         Live[live]
         Preview[preview]
         Testing[testing]
     end
-    Live --> Prod[Real repos + SystemClock + real audio]
-    Preview --> Prev[Preview repos + NoOp services]
-    Testing --> Test[In-memory persistence + stubs]
+    Live --> Prod["Real repos SystemClock real audio"]
+    Preview --> Prev["Preview repos NoOp services"]
+    Testing --> Test["In-memory persistence and stubs"]
 ```
 
 ---

@@ -46,13 +46,13 @@ concurrency:
 
 ```mermaid
 flowchart TD
-    A["PR or push to develop / main"] --> B["Job: test on macos-26"]
+    A["PR or push to develop and main"] --> B["Job test on macos-26"]
     B --> C["actions/checkout v4"]
     C --> D["setup-xcode 26.5"]
     D --> E["xcodebuild -version"]
     E --> F["Resolve SPM packages"]
     F --> G["Pick iOS Simulator"]
-    G --> H["xcodebuild test + coverage"]
+    G --> H["xcodebuild test and coverage"]
     H --> I{Tests pass?}
     I -->|No| Fail["Job failed"]
     I -->|Yes| J["logic_coverage.py gate 80%"]

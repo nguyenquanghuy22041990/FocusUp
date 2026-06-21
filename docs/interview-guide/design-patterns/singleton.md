@@ -18,9 +18,9 @@ The app needs exactly one `ModelContainer` on disk and one production `AppContai
 
 ```mermaid
 flowchart TB
-    App[App.swift] --> Live[AppContainer.live]
-    Live --> Shared[PersistenceController.shared]
-    Shared --> Container[ModelContainer on disk]
+    App["App.swift"] --> Live["AppContainer.live"]
+    Live --> Shared["PersistenceController.shared"]
+    Shared --> Container["ModelContainer on disk"]
 ```
 
 | Singleton | File | Role |

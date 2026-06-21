@@ -18,7 +18,7 @@ A facade **hides the steps** behind one method.
 
 ```mermaid
 flowchart TB
-    subgraph facades [Facade types]
+    subgraph facades ["Facade types"]
         DO[DashboardOrchestrator]
         NS[NotificationScheduler]
         ARC[AppRestorationCoordinator]

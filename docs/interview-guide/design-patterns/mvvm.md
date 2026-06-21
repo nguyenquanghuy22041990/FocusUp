@@ -30,7 +30,7 @@ MVVM keeps views **declarative** and moves testable logic into `@Observable` typ
 flowchart LR
     View[TaskListView] --> VM[TaskListViewModel]
     VM --> Repo[TaskRepository protocol]
-    Repo --> Domain[Task model]
+    Repo --> DomainModel["Task model"]
 ```
 
 | File | Role |

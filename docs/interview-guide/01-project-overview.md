@@ -43,26 +43,26 @@ Session **Managers** (`FocusSessionManager`, `RestSessionManager`) are **not** V
 
 ```mermaid
 flowchart TB
-    subgraph presentation [Presentation]
+    subgraph presentation ["Presentation"]
         Views[SwiftUI Views]
-        VM[ViewModels @Observable]
+        VM["ViewModels Observable"]
     end
-    subgraph coordination [Coordination — navigation]
+    subgraph coordination ["Coordination - navigation"]
         AC[AppCoordinator]
         TC[TabCoordinator per tab]
     end
-    subgraph application [Application / feature services]
+    subgraph application ["Application - feature services"]
         MGR[Session Managers]
         ORCH[DashboardOrchestrator]
     end
-    subgraph domain [Domain]
-        Models[Structs + pure logic]
+    subgraph domain ["Domain"]
+        Models[Structs and pure logic]
         Protos[Repository protocols]
     end
-    subgraph data [Data]
+    subgraph data ["Data"]
         RepoImpl[RepositoryImpl]
         SwiftData[SwiftData entities]
-        Mappers[Domain ↔ Entity mappers]
+        Mappers["Domain to Entity mappers"]
     end
     Views --> VM
     Views --> AC

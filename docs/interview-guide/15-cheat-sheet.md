@@ -138,6 +138,7 @@ One job: build + test + 80% logic coverage.
 | `10-design-patterns.md` | Pattern summary |
 | `design-patterns/` | One deep dive per pattern |
 | `16-app-restoration-coordinator.md` | Cold restore line-by-line |
+| `17-xcode-walkthrough-presentation.md` | Live Xcode tour script |
 | `13-interview-questions.md` | 100+ Q&A |
 | `14-project-review.md` | Weaknesses |
 

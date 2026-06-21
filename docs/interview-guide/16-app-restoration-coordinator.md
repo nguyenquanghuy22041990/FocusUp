@@ -24,16 +24,16 @@ Without a coordinator, restoration would be scattered across SwiftUI modifiers w
 
 ```mermaid
 flowchart TB
-    Launch[App launch] --> Root[AppRootView .task]
+    Launch[App launch] --> Root["AppRootView task modifier"]
     Root --> ARC[performColdRestore]
-    ARC --> DB[restoreOnLaunch focus + rest]
-    ARC --> Timer[applyTimerSnapshotIfNeeded x2]
+    ARC --> DB["restoreOnLaunch focus and rest"]
+    ARC --> Timer["applyTimerSnapshotIfNeeded twice"]
     ARC --> Nav1[reconcileNavigationWithSessions]
-    ARC --> Flag["hasCompletedColdRestore = true"]
+    ARC --> Flag["hasCompletedColdRestore true"]
     ARC --> Notif[notificationScheduler.rescheduleAll]
     ARC --> FG[AppForegroundRefresh.perform]
     Flag --> NavMod[NavigationRestorationModifier]
-    NavMod --> Nav2[applyRestorationState + reconcile again]
+    NavMod --> Nav2["applyRestorationState and reconcile again"]
 ```
 
 ---
@@ -270,7 +270,7 @@ flowchart TD
     HAS -->|no| APPLY[applyRestorationSnapshot]
     HAS -->|yes| MATCH{same session ID?}
     MATCH -->|no| SKIP
-    MATCH -->|yes| ELAPSED{scene elapsed >= DB elapsed?}
+    MATCH -->|yes| ELAPSED{"scene elapsed at least DB elapsed?"}
     ELAPSED -->|no| SKIP
     ELAPSED -->|yes| APPLY
 ```
@@ -329,7 +329,7 @@ sequenceDiagram
 
     ARV->>ARC: performColdRestore
     ARC->>CO: reconcileNavigationWithSessions pass 1
-    ARC->>CO: hasCompletedColdRestore = true
+    ARC->>CO: hasCompletedColdRestore true
     CO-->>NAV: flag changed
     NAV->>NAV: decode PersistedNavigationState
     NAV->>CO: applyRestorationState
@@ -358,12 +358,12 @@ sequenceDiagram
     ARC->>UD: loadFocusTimerSnapshot backup
     ARC->>ARC: applyTimerSnapshotIfNeeded
     ARC->>CO: reconcileNavigationWithSessions
-    ARC->>CO: hasCompletedColdRestore = true
-    ARC->>ARC: rescheduleAll + AppForegroundRefresh
+    ARC->>CO: hasCompletedColdRestore true
+    ARC->>ARC: rescheduleAll and AppForegroundRefresh
     CO-->>NAV: hasCompletedColdRestore changed
     NAV->>SS: read navigation SceneStorage
     NAV->>UD: loadNavigation backup
-    NAV->>CO: applyRestorationState + reconcile
+    NAV->>CO: applyRestorationState and reconcile
 ```
 
 ---

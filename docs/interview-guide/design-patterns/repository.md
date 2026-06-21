@@ -27,9 +27,9 @@ flowchart LR
     VM[TaskListViewModel] --> Proto[TaskRepository protocol]
     Proto --> Impl[TaskRepositoryImpl]
     Impl --> Mapper[TaskMapper]
-    Mapper --> Entity[TaskEntity SwiftData]
+    Mapper --> Entity["TaskEntity in SwiftData"]
     Proto --> Preview[PreviewTaskRepository]
-    Proto --> Mock[MockTaskRepository tests]
+    Proto --> Mock["MockTaskRepository for tests"]
 ```
 
 | Layer | Location | Example |

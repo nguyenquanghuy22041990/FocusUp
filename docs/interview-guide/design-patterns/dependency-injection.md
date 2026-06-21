@@ -22,13 +22,13 @@ FocusUp uses **manual DI** — no third-party container (Swinject, etc.).
 
 ```mermaid
 flowchart TB
-    App[App.swift] --> Container[AppContainer.live]
+    App["App.swift"] --> Container["AppContainer.live"]
     Container --> Persist[PersistenceController]
     Container --> Repos[Repositories]
-    Container --> Mgr[Session Managers]
-    Container --> Svc[Services Clock Audio Notifications]
+    Container --> Mgr["Session Managers"]
+    Container --> Svc["Clock Audio Notifications"]
     Container --> Coord[AppCoordinator]
-    Env[Environment appContainer] --> Views[Feature Views]
+    Env["Environment appContainer"] --> Views["Feature Views"]
 ```
 
 **File:** `Core/DependencyInjection/AppContainer.swift`

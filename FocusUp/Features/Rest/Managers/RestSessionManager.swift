@@ -6,12 +6,6 @@
 import Foundation
 import Observation
 
-enum RestSessionManagerError: Error, Equatable {
-  case sessionAlreadyActive
-  case noActiveSession
-  case sessionNotFound
-}
-
 @MainActor
 @Observable
 final class RestSessionManager {
@@ -19,11 +13,14 @@ final class RestSessionManager {
   private let clock: any Clock
   private let ambientSoundPlayer: any SessionAmbientSoundPlaying
   private let liveActivityManager: any LiveActivityManaging
+  private let lifecycle: SessionLifecycleRunner<RestSession>
 
-  let timerEngine: TimerEngine
-
-  private(set) var activeSession: RestSession?
-  var lastError: String?
+  var activeSession: RestSession? { lifecycle.activeSession }
+  var timerEngine: TimerEngine { lifecycle.timerEngine }
+  var lastError: String? {
+    get { lifecycle.lastError }
+    set { lifecycle.lastError = newValue }
+  }
 
   init(
     repository: any RestRepository,
@@ -35,170 +32,108 @@ final class RestSessionManager {
     self.clock = clock
     self.ambientSoundPlayer = ambientSoundPlayer
     self.liveActivityManager = liveActivityManager ?? Self.defaultLiveActivityManager()
-    self.timerEngine = TimerEngine(clock: clock)
-  }
 
-  // MARK: - Lifecycle
+    let ambientSoundPlayer = ambientSoundPlayer
+    let liveActivityManager = self.liveActivityManager
+
+    lifecycle = SessionLifecycleRunner(
+      clock: clock,
+      store: SessionLifecycleStore(
+        fetchActive: { try await repository.fetchActive() },
+        fetch: { try await repository.fetch(id: $0) },
+        save: { try await repository.save($0) }
+      ),
+      sideEffects: SessionLifecycleSideEffects(
+        onAfterStart: { session, now in
+          ambientSoundPlayer.play(category: .rest)
+          await liveActivityManager.startRest(session: session, now: now)
+        },
+        onAfterPause: { session, now in
+          ambientSoundPlayer.stop()
+          await liveActivityManager.syncRest(session: session, now: now)
+        },
+        onAfterResume: { session, now in
+          await liveActivityManager.syncRest(session: session, now: now)
+        },
+        onAfterComplete: { _, _ in
+          ambientSoundPlayer.stop()
+          await liveActivityManager.end(immediate: true)
+        },
+        onAfterCancel: { _, _ in
+          ambientSoundPlayer.stop()
+          await liveActivityManager.end(immediate: true)
+        },
+        onAfterRestore: { session, now in
+          await liveActivityManager.startRest(session: session, now: now)
+        },
+        onAfterRestoreSync: { session, now in
+          await liveActivityManager.syncRest(session: session, now: now)
+        },
+        playAmbientSound: {
+          ambientSoundPlayer.play(category: .rest)
+        },
+        stopAmbientSound: {
+          ambientSoundPlayer.stop()
+        }
+      )
+    )
+  }
 
   func startSession(
     title: String = "Rest Break",
     durationSeconds: Int
   ) async throws {
-    if activeSession != nil {
-      throw RestSessionManagerError.sessionAlreadyActive
-    }
-
     let now = clock.now()
-    let config = TimerConfiguration(totalDurationSeconds: durationSeconds)
-    timerEngine.reset(configuration: config)
-    timerEngine.start(at: now)
-
-    var session = RestSession(
+    let session = RestSession(
       title: title,
       plannedDurationSeconds: durationSeconds,
       status: .active,
       segmentStartedAt: now,
       sessionStartedAt: now
     )
-    session.applyTimerSnapshotForPersistence(timerEngine.exportSnapshot(at: now), at: now)
-
-    try await repository.save(session)
-    activeSession = session
-    lastError = nil
-    ambientSoundPlayer.play(category: .rest)
-    await liveActivityManager.startRest(session: session, now: now)
+    try await lifecycle.activateNewSession(session, durationSeconds: durationSeconds)
   }
 
   func pauseSession() async throws {
-    guard var session = activeSession else { throw RestSessionManagerError.noActiveSession }
-    let now = clock.now()
-    timerEngine.pause(at: now)
-    session.applyTimerSnapshotForPersistence(timerEngine.exportSnapshot(at: now), at: now)
-    try await persist(session)
-    ambientSoundPlayer.stop()
-    if let activeSession { await liveActivityManager.syncRest(session: activeSession, now: now) }
+    try await lifecycle.pauseSession()
   }
 
   func resumeSession() async throws {
-    guard var session = activeSession else { throw RestSessionManagerError.noActiveSession }
-    let now = clock.now()
-    timerEngine.resume(at: now)
-    session.applyTimerSnapshotForPersistence(timerEngine.exportSnapshot(at: now), at: now)
-    try await persist(session)
-    ambientSoundPlayer.play(category: .rest)
-    if let activeSession { await liveActivityManager.syncRest(session: activeSession, now: now) }
+    try await lifecycle.resumeSession()
   }
 
   func completeSession() async throws {
-    guard var session = activeSession else { throw RestSessionManagerError.noActiveSession }
-    let now = clock.now()
-    timerEngine.complete(at: now)
-    session.applyTimerSnapshotForPersistence(timerEngine.exportSnapshot(at: now), at: now)
-    session.completedAt = now
-    try await persist(session)
-    activeSession = nil
-    timerEngine.reset()
-    ambientSoundPlayer.stop()
-    await liveActivityManager.end(immediate: true)
+    try await lifecycle.completeSession()
   }
 
   func cancelSession() async throws {
-    guard var session = activeSession else { throw RestSessionManagerError.noActiveSession }
-    let now = clock.now()
-    timerEngine.cancel(at: now)
-    session.applyTimerSnapshotForPersistence(timerEngine.exportSnapshot(at: now), at: now)
-    try await persist(session)
-    activeSession = nil
-    timerEngine.reset()
-    ambientSoundPlayer.stop()
-    await liveActivityManager.end(immediate: true)
+    try await lifecycle.cancelSession()
   }
 
   func tick() async -> TimerSnapshot {
-    let priorState = timerEngine.state
-    let snapshot = timerEngine.tick(at: clock.now())
-    if priorState != .completed, snapshot.state == .completed {
-      try? await completeSession()
-    }
-    return snapshot
+    await lifecycle.tick()
   }
-
-  // MARK: - Restoration
 
   func restoreOnLaunch() async {
-    guard activeSession == nil else { return }
-    guard let session = try? await repository.fetchActive() else { return }
-    applyRestoredSession(session)
-    if let activeSession {
-      await liveActivityManager.startRest(session: activeSession, now: clock.now())
-    }
+    await lifecycle.restoreOnLaunch()
   }
 
-  func applyRestorationSnapshot(_ snapshot: RestTimerRestorationSnapshot) async {
-    let reconciled = TimerRestorationManager.reconcile(snapshot, at: clock.now())
-    guard let session = try? await repository.fetch(id: reconciled.sessionID) else { return }
-    guard session.status.isActiveLifecycle else { return }
-
-    if reconciled.timerSnapshot.state == .completed || reconciled.timerSnapshot.state == .cancelled {
-      var finalized = session
-      finalized.applyTimerSnapshotForPersistence(reconciled.timerSnapshot, at: clock.now())
-      if reconciled.timerSnapshot.state == .completed {
-        finalized.completedAt = clock.now()
-      }
-      try? await repository.save(finalized)
-      return
-    }
-
-    activeSession = session
-    timerEngine.restore(from: reconciled.timerSnapshot)
-    timerEngine.reconcileAfterRestore(at: clock.now())
-    if var updated = activeSession {
-      updated.applyTimerSnapshotForPersistence(timerEngine.exportSnapshot(at: clock.now()), at: clock.now())
-      activeSession = updated
-      try? await repository.save(updated)
-    }
-    syncAmbientSoundWithActiveSession()
-    if let activeSession {
-      await liveActivityManager.syncRest(session: activeSession, now: clock.now())
-    }
+  func applyRestorationSnapshot(_ snapshot: SessionTimerRestorationSnapshot) async {
+    await lifecycle.applyRestorationSnapshot(snapshot)
   }
 
   #if DEBUG
   func configureForPreview(session: RestSession, timerSnapshot: TimerSnapshot) {
-    activeSession = session
-    timerEngine.restore(from: timerSnapshot)
+    lifecycle.configureForPreview(session: session, timerSnapshot: timerSnapshot)
   }
   #endif
 
-  func exportRestorationSnapshot() -> RestTimerRestorationSnapshot? {
-    guard let session = activeSession else { return nil }
-    return RestTimerRestorationSnapshot(
-      sessionID: session.id,
-      timerSnapshot: timerEngine.exportSnapshot(at: clock.now())
-    )
+  func exportRestorationSnapshot() -> SessionTimerRestorationSnapshot? {
+    lifecycle.exportRestorationSnapshot()
   }
 
-  // MARK: - Private
-
-  private func persist(_ session: RestSession) async throws {
-    try await repository.save(session)
-    activeSession = session
-    lastError = nil
-  }
-
-  private func applyRestoredSession(_ session: RestSession) {
-    activeSession = session
-    rebuildTimer(from: session)
-    timerEngine.reconcileAfterRestore(at: clock.now())
-    syncAmbientSoundWithActiveSession()
-  }
-
-  private func syncAmbientSoundWithActiveSession() {
-    guard activeSession?.status == .active else {
-      ambientSoundPlayer.stop()
-      return
-    }
-    ambientSoundPlayer.play(category: .rest)
+  func syncAmbientSoundWithActiveSession() {
+    lifecycle.syncAmbientSoundWithActiveSession()
   }
 
   private static func defaultLiveActivityManager() -> any LiveActivityManaging {
@@ -207,19 +142,5 @@ final class RestSessionManager {
     #else
     NoOpLiveActivityManager()
     #endif
-  }
-
-  private func rebuildTimer(from session: RestSession) {
-    let config = TimerConfiguration(totalDurationSeconds: session.plannedDurationSeconds)
-    timerEngine.reset(configuration: config)
-
-    let snapshot = TimerSnapshot(
-      state: session.status.timerState,
-      configuration: config,
-      accumulatedElapsedSeconds: session.elapsedSeconds,
-      segmentStartedAt: session.segmentStartedAt,
-      lastUpdatedAt: clock.now()
-    )
-    timerEngine.restore(from: snapshot)
   }
 }

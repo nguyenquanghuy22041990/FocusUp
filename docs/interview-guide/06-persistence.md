@@ -42,7 +42,7 @@ Registered in [`PersistenceSchema.swift`](../../FocusUp/Data/Persistence/Persist
 
 ```mermaid
 erDiagram
-    TaskEntity ||--o{ TaskMilestoneEntity : "milestones (cascade delete)"
+    TaskEntity ||--o{ TaskMilestoneEntity : "milestones cascade delete"
 
     TaskEntity {
         UUID id PK "unique"
@@ -113,7 +113,7 @@ erDiagram
 
 ```mermaid
 flowchart TB
-    subgraph swiftdata [SwiftData ModelContainer]
+    subgraph swiftdata ["SwiftData ModelContainer"]
         TE[TaskEntity]
         TME[TaskMilestoneEntity]
         FSE[FocusSessionEntity]
@@ -121,10 +121,10 @@ flowchart TB
         UPE[UserPreferencesEntity]
     end
 
-    TE -->|"@Relationship cascade"| TME
-    FSE -.->|"associatedTaskID: UUID?"| TE
+    TE -->|"Relationship cascade"| TME
+    FSE -.->|"associatedTaskID UUID"| TE
 
-    subgraph not_in_db [Not stored as entities]
+    subgraph not_in_db ["Not stored as entities"]
         STATS[StatisticsSummary]
         STATS2["Computed by FocusAnalyticsCalculator"]
     end
@@ -132,9 +132,9 @@ flowchart TB
     FSE --> STATS2
     TE --> STATS2
 
-    subgraph other_stores [Other persistence]
-        SS[SceneStorage - timer snapshots]
-        UD[UserDefaults - AppRestorationStore]
+    subgraph other_stores ["Other persistence"]
+        SS["SceneStorage timer snapshots"]
+        UD["UserDefaults AppRestorationStore"]
     end
 ```
 
@@ -162,8 +162,8 @@ Entities are **never** used in Features or ViewModels. Repositories map both way
 
 ```mermaid
 flowchart LR
-    SDE[SwiftData Entity] <-->|TaskMapper, FocusSessionMapper, etc.| DOM[Domain struct]
-    DOM --> VM[ViewModel / Manager]
+    SDE[SwiftData Entity] <-->|Mappers| DOM[Domain struct]
+    DOM --> VM[ViewModel or Manager]
     SDE --> CTX[ModelContext]
 ```
 
@@ -176,14 +176,14 @@ Mapper files: `FocusUp/Data/Mappers/`
 
 ```mermaid
 sequenceDiagram
-    participant VM as ViewModel/Manager
+    participant VM as ViewModel or Manager
     participant R as TaskRepositoryImpl
     participant M as TaskMapper
     participant C as ModelContext
 
     VM->>R: update(task)
     R->>M: toEntity(domain)
-    M->>C: fetch/insert entity
+    M->>C: fetch or insert entity
     C->>C: save()
     R-->>VM: success
 ```

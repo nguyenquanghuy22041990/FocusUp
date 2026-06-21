@@ -27,7 +27,7 @@ Strategy isolates **how** a capability is performed.
 
 ```mermaid
 flowchart TB
-    subgraph protocols [Strategy protocols]
+    subgraph protocols ["Strategy protocols"]
         Clock[Clock]
         Audio[SessionAmbientSoundPlaying]
         Live[LiveActivityManaging]

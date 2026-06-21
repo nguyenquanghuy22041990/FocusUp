@@ -30,11 +30,11 @@ flowchart TB
     AppCoord[AppCoordinator]
     AppCoord --> Tab[selectedTab]
     AppCoord --> TC[TabCoordinators]
-    TC --> Dash[TabCoordinator DashboardRoute]
-    TC --> Tasks[TabCoordinator TasksRoute]
-    TC --> Focus[TabCoordinator FocusRoute]
-    TC --> Stats[TabCoordinator StatisticsRoute]
-    TC --> Settings[TabCoordinator SettingsRoute]
+    TC --> Dash["TabCoordinator DashboardRoute"]
+    TC --> Tasks["TabCoordinator TasksRoute"]
+    TC --> FocusTab["TabCoordinator FocusRoute"]
+    TC --> Stats["TabCoordinator StatisticsRoute"]
+    TC --> Settings["TabCoordinator SettingsRoute"]
 ```
 
 | Type | File | Owns |
