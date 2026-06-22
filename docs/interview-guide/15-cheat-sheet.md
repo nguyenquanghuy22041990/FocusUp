@@ -41,8 +41,9 @@ Dashboard · Tasks · Focus · Statistics · Settings
 
 `start` → `TimerEngine.running` → `tick` → (complete) → persist → clear → stop audio → end Live Activity → notify
 
-**Managers:** `FocusSessionManager`, `RestSessionManager`  
-**Timer:** `TimerEngine` + injectable `Clock`
+**Managers:** `FocusSessionManager`, `RestSessionManager` (thin; shared logic in `SessionLifecycleRunner`)  
+**Timer:** `TimerEngine` + `SessionLifecycleRunner` + injectable `Clock`  
+**Deep dive:** [18 — Timer Architecture](18-timer-architecture.md)
 
 ---
 
@@ -63,7 +64,8 @@ Dashboard · Tasks · Focus · Statistics · Settings
 | `AppContainer.swift` | DI root |
 | `AppRootView.swift` | Cold start + scene phase |
 | `AppCoordinator.swift` | Tabs + navigation |
-| `FocusSessionManager.swift` | Focus lifecycle |
+| `FocusSessionManager.swift` | Focus facade (side effects) |
+| `SessionLifecycleRunner.swift` | Shared focus/rest lifecycle |
 | `TimerEngine.swift` | Timer state machine |
 | `AppRestorationCoordinator.swift` | Restore pipeline |
 | `NotificationScheduler.swift` | Local notifications |

@@ -56,6 +56,7 @@ Use this doc to show **self-awareness** in interviews — strengths land better 
 | Risk | Mitigation status |
 |------|-------------------|
 | Timer auto-complete | **Fixed** — `tick()` persists via `completeSession()` |
+| Duplicate focus/rest manager lifecycle | **Fixed** — `SessionLifecycleRunner` + thin managers |
 | Ghost navigation routes | Handled — `AppForegroundRefresh`, coordinator reconcile |
 | Stale task link on focus start | `reconcileTaskSelection` clears completed tasks |
 | Race: push + PR duplicate CI | **Fixed** — removed `feature/**` push trigger |

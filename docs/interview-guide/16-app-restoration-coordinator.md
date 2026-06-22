@@ -296,7 +296,7 @@ protocol SessionTimerRestoring: AnyObject {
 }
 ```
 
-Exposes only what the coordinator needs for generic timer restore. `FocusSessionManager` and `RestSessionManager` conform via extensions — no duplicate restore logic in the coordinator.
+Exposes only what the coordinator needs for generic timer restore. `FocusSessionManager` and `RestSessionManager` conform via extensions and delegate `restoreOnLaunch` / `applyRestorationSnapshot` to **`SessionLifecycleRunner`** — no duplicate restore logic in the coordinator or between managers.
 
 ---
 
@@ -381,8 +381,9 @@ sequenceDiagram
 | `Features/Rest/Restoration/RestTimerRestorationModifier.swift` | Persist rest timer on background |
 | `Core/Navigation/Restoration/NavigationRestorationModifier.swift` | Persist/restore navigation after flag |
 | `Core/Navigation/AppCoordinator+RestorationReconciliation.swift` | Route alignment with sessions |
-| `Features/Focus/Managers/FocusSessionManager.swift` | `restoreOnLaunch`, `applyRestorationSnapshot` |
+| `Features/Focus/Managers/FocusSessionManager.swift` | Delegates to runner; `restoreOnLaunch`, `applyRestorationSnapshot` |
 | `Features/Rest/Managers/RestSessionManager.swift` | Same for rest |
+| `Core/Timer/SessionLifecycleRunner.swift` | Shared restore/tick/persist pipeline |
 | `Core/AppLifecycle/AppForegroundRefresh.swift` | Post-restore cleanup on foreground |
 
 ---

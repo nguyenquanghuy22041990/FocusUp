@@ -84,6 +84,7 @@ FocusUpTests/
 | Suite | What it proves |
 |-------|----------------|
 | `FocusSessionLifecycleStressTests` | Pause/resume, auto-complete at boundary |
+| `SessionLifecycleRunnerTests` | Shared runner lifecycle, tick auto-complete, restore |
 | `RestorationIntegrationTests` | Cold restore + timer reconciliation |
 | `NotificationSchedulerTests` | Quiet hours, reschedule logic |
 | `FocusAnalyticsCalculatorTests` | Streaks, trends, distribution |

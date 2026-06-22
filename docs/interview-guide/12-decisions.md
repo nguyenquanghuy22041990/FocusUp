@@ -8,6 +8,7 @@
 | 4 | Manual `AppContainer` DI | Explicit, interview-clear | Factory, Swinject | Container grows |
 | 5 | `@Observable` over `ObservableObject` | Less boilerplate | Combine publishers | Newer API |
 | 6 | Session managers | Shared lifecycle for dashboard + timer | Fat ViewModels | Extra layer |
+| 6b | `SessionLifecycleRunner` | DRY focus/rest pause/resume/restore | Duplicate manager bodies | Generic + side-effect hooks |
 | 7 | Wall-clock `TimerEngine` | Accurate restore | `Timer.publish` | Must inject `Clock` for tests |
 | 8 | Rest under Focus tab | Single timer tab UX | Separate Rest tab | Couples features |
 | 9 | Local notifications only | No backend MVP | APNs push | No cross-device |

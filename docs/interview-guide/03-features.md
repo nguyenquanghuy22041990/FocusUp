@@ -26,6 +26,8 @@
 
 ## Focus Timer
 
+**Deep dive:** [18 — Timer Architecture](18-timer-architecture.md)
+
 **Purpose:** Timed focus sessions with optional task association.
 
 | Role | Files |
@@ -33,7 +35,8 @@
 | Tab shell | `Features/Focus/FocusView.swift` |
 | Start | `Start/FocusTimerStartView.swift`, `FocusTimerStartViewModel.swift` |
 | Active | `Active/FocusTimerView.swift`, `FocusTimerViewModel.swift` |
-| Manager | `Managers/FocusSessionManager.swift` |
+| Manager | `Managers/FocusSessionManager.swift` (delegates to `SessionLifecycleRunner`) |
+| Shared lifecycle | `Core/Timer/SessionLifecycleRunner.swift` |
 | Restoration | `Restoration/FocusTimerRestorationModifier.swift`, `TimerRestorationManager.swift` |
 
 **Flow:**
@@ -58,7 +61,8 @@
 |------|-------|
 | View | `Features/Rest/RestTimerView.swift` |
 | ViewModel | `RestTimerViewModel.swift` |
-| Manager | `Managers/RestSessionManager.swift` |
+| Manager | `Managers/RestSessionManager.swift` (delegates to `SessionLifecycleRunner`) |
+| Shared lifecycle | `Core/Timer/SessionLifecycleRunner.swift` |
 
 **Differences from Focus:**
 - Default title "Rest Break"; ambient `.rest` sounds
