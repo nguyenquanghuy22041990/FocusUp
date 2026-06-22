@@ -29,10 +29,11 @@ Use this script when you **open FocusUp in Xcode** and walk interviewers through
 2. `Core/DependencyInjection/AppContainer.swift`
 3. `App/AppRootView.swift`
 4. `Features/Tasks/TaskList/TaskListViewModel.swift`
-5. `Features/Focus/Managers/FocusSessionManager.swift`
-6. `Core/Timer/TimerEngine.swift`
-7. `Core/AppLifecycle/AppRestorationCoordinator.swift`
-8. `.github/workflows/ios-ci.yml` (in project root, not inside app target)
+5. `Core/Timer/SessionLifecycleRunner.swift`
+6. `Features/Focus/Managers/FocusSessionManager.swift`
+7. `Core/Timer/TimerEngine.swift`
+8. `Core/AppLifecycle/AppRestorationCoordinator.swift`
+9. `.github/workflows/ios-ci.yml` (in project root, not inside app target)
 
 ### Opening line (30 seconds)
 
@@ -200,14 +201,15 @@ Walk **one happy path** (Tasks) then **one complex path** (Focus).
 
 | Path | What to say |
 |------|-------------|
-| `Focus/Managers/FocusSessionManager.swift` | “**Application service** — not a ViewModel. Owns active session, `TimerEngine`, audio, Live Activity, persistence.” |
+| `Core/Timer/SessionLifecycleRunner.swift` | “**Shared lifecycle** — pause/resume/complete/tick/restore for focus and rest. Generic helper; managers only wire side effects.” |
+| `Focus/Managers/FocusSessionManager.swift` | “**Thin application service** — focus audio, Live Activity, notifications. Delegates lifecycle to `SessionLifecycleRunner`.” |
 | `Focus/Active/FocusTimerViewModel.swift` | “Thin — formats time strings, delegates lifecycle to manager.” |
 | `Focus/Active/FocusTimerView.swift` | “Timer UI; tick loop only when scene is active.” |
 | `Focus/Restoration/FocusTimerRestorationModifier.swift` | “Writes timer snapshot on background; coordinator restores on launch.” |
-| `Rest/Managers/RestSessionManager.swift` | “Same patterns as focus, simpler domain.” |
+| `Rest/Managers/RestSessionManager.swift` | “Same runner as focus; rest-specific audio and Live Activity only.” |
 | `Rest/Animations/CalmBreathingModifier.swift` | “Rest-specific calm motion; respects Reduce Motion.” |
 
-**Open:** `FocusSessionManager.swift` — `startSession`, `completeSession`, `restoreOnLaunch`.
+**Open:** `SessionLifecycleRunner.swift` — `activateNewSession`, `tick`, `applyRestorationSnapshot`. Then `FocusSessionManager.swift` — side-effect hooks only.
 
 ### 4c. Other features (30 sec each)
 
@@ -301,7 +303,7 @@ If time allows, run the app and narrate:
 2. **Focus** → start timer → background app → return (restoration)
 3. **Dashboard** → active session card
 
-Keep Xcode open on `FocusSessionManager` or `AppRestorationCoordinator` while demo runs.
+Keep Xcode open on `SessionLifecycleRunner`, `FocusSessionManager`, or `AppRestorationCoordinator` while demo runs.
 
 ---
 
@@ -356,7 +358,7 @@ docs/          → Architecture + interview guide
 
 | Format | Path |
 |--------|------|
-| **10 min** | App → AppContainer → TaskListViewModel → FocusSessionManager → TimerEngine → CI |
+| **10 min** | App → AppContainer → TaskListViewModel → SessionLifecycleRunner → FocusSessionManager → TimerEngine → CI |
 | **18 min** | Full script Stops 1–7 |
 | **30 min** | Full script + live demo + deep dive on restoration |
 

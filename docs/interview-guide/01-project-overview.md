@@ -31,7 +31,7 @@
 
 ## High-Level Architecture
 
-Session **Managers** (`FocusSessionManager`, `RestSessionManager`) are **not** ViewModels and **not** Domain models. They live in the **application / feature-service** layer: they orchestrate session lifecycle, call repositories, and trigger side effects (timer, audio, Live Activities, notifications). In the folder structure they sit under `Features/Focus/Managers/` and `Features/Rest/Managers/`.
+Session **Managers** (`FocusSessionManager`, `RestSessionManager`) are **not** ViewModels and **not** Domain models. They live in the **application / feature-service** layer: thin facades for focus/rest-specific side effects (audio, Live Activities, notifications). Shared pause/resume/complete/cancel/tick/restore lives in **`SessionLifecycleRunner`** (`Core/Timer/`).
 
 | Layer | Session Managers? | Examples |
 |-------|-------------------|----------|
@@ -53,6 +53,7 @@ flowchart TB
     end
     subgraph application ["Application - feature services"]
         MGR[Session Managers]
+        SLR[SessionLifecycleRunner]
         ORCH[DashboardOrchestrator]
     end
     subgraph domain ["Domain"]
@@ -70,7 +71,8 @@ flowchart TB
     VM --> MGR
     ORCH --> MGR
     ORCH --> Protos
-    MGR --> Protos
+    MGR --> SLR
+    SLR --> Protos
     Protos --> RepoImpl --> SwiftData
     RepoImpl --> Mappers
 ```

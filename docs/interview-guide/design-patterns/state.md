@@ -86,7 +86,7 @@ ViewModel UI state is a **presentation state** variant; `TimerEngine` is **domai
 
 ## Interview answer (30 sec)
 
-> `TimerEngine` implements a state machine with `TimerState`. Methods like `pause` and `resume` guard on current state so invalid transitions are ignored. Elapsed time uses wall-clock segments in `TimerSnapshot`, which makes restoration correct after backgrounding. Session managers own the engine; ViewModels observe elapsed/remaining.
+> `TimerEngine` implements a state machine with `TimerState`. Methods like `pause` and `resume` guard on current state so invalid transitions are ignored. Elapsed time uses wall-clock segments in `TimerSnapshot`, which makes restoration correct after backgrounding. **`SessionLifecycleRunner`** owns the engine and shared lifecycle; session managers wire focus/rest side effects; ViewModels observe elapsed/remaining.
 
 ---
 
@@ -95,7 +95,8 @@ ViewModel UI state is a **presentation state** variant; `TimerEngine` is **domai
 - `Core/Timer/TimerEngine.swift`
 - `Core/Timer/TimerSnapshot.swift`
 - `Core/Timer/TimerState.swift`
-- `Features/Focus/Managers/FocusSessionManager.swift` — calls engine lifecycle
+- `Core/Timer/SessionLifecycleRunner.swift` — shared lifecycle
+- `Features/Focus/Managers/FocusSessionManager.swift` — focus side effects
 
 ---
 

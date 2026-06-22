@@ -11,13 +11,15 @@ FocusUp uses **MVVM-C**, not pure MVVM:
 | **Coordinator** | Navigation, tab selection, deep links | `AppCoordinator`, `TabCoordinator<FocusRoute>` |
 | **Model** | Domain data + rules | `Task`, `FocusSession`, `FocusAnalyticsCalculator` |
 
-**Managers** (`FocusSessionManager`, `RestSessionManager`) sit between ViewModels and repositories — they own session lifecycle + `TimerEngine` + side effects (audio, Live Activities, notifications).
+**Managers** (`FocusSessionManager`, `RestSessionManager`) sit between ViewModels and repositories — thin **application services** that wire focus/rest-specific side effects (audio, Live Activity, notifications) and delegate shared lifecycle to **`SessionLifecycleRunner`** (`Core/Timer/`), which owns `TimerEngine` + persist/restore/tick.
 
 ```mermaid
 flowchart LR
     View --> VM[ViewModel]
     View --> Coord[Coordinator]
     VM --> Mgr[SessionManager]
+    Mgr --> SLR[SessionLifecycleRunner]
+    SLR --> TE[TimerEngine]
     VM --> Orch[Orchestrator]
     Mgr --> Repo[Repository protocol]
     Orch --> Repo
@@ -74,7 +76,7 @@ sequenceDiagram
 
 **Write path (focus complete):**
 
-`FocusTimerView` → `FocusTimerViewModel.complete()` → `FocusSessionManager.completeSession()` → persist via `FocusRepository` → clear `activeSession` → stop audio → end Live Activity → `NotificationScheduler.notifySessionCompleted`.
+`FocusTimerView` → `FocusTimerViewModel.complete()` → `FocusSessionManager.completeSession()` → `SessionLifecycleRunner` (engine + persist) → `FocusRepository` → side effects (audio, Live Activity, `NotificationScheduler.notifySessionCompleted`).
 
 ---
 
@@ -188,6 +190,7 @@ TabCoordinator<FocusRoute>  // path: [FocusRoute]
 | `App/AppRootView.swift` | Cold restore, scene phase, restoration modifiers |
 | `Core/DependencyInjection/AppContainer.swift` | Full dependency graph |
 | `Core/Navigation/AppCoordinator.swift` | Navigation hub |
-| `Features/Focus/Managers/FocusSessionManager.swift` | Core session lifecycle |
+| `Features/Focus/Managers/FocusSessionManager.swift` | Focus-specific session facade (side effects) |
+| `Core/Timer/SessionLifecycleRunner.swift` | Shared focus/rest lifecycle + `TimerEngine` |
 | `Core/Timer/TimerEngine.swift` | Timer state machine |
 | `Core/AppLifecycle/AppRestorationCoordinator.swift` | Restore pipeline |
